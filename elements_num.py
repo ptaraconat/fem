@@ -81,6 +81,7 @@ class element_d2t3() :
 		material_relation = fac_tmp*np.array([[1, pois, 0],
 		                              [pois, 1., 0],
 		                              [0., 0., (1-pois)/2.]])
+		# Loop for gauss integration
 		element_k = np.zeros([6,6])
 		for i in range(len(self.gauss_weights)): 
 			weight = self.gauss_weights[i]
