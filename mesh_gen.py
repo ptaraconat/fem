@@ -96,8 +96,4 @@ def uniform_mesh(d1,d2,p,m,element_type = 'D2T3'):
 					
 	return NL, EL 
 				
-d1 = 1 
-d2 = 1 
-p = 4
-m = 3
-NL, EL = uniform_mesh(d1,d2,p,m)
+
