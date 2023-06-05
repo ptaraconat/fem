@@ -40,6 +40,10 @@ class element_d2t3() :
 		interp_mat = [self.interp1(xi,eta),self.interp2(xi,eta),self.interp3(xi,eta)]
 		interp_mat = np.asarray(interp_mat)#np.asarray([interp_mat,interp_mat])
 		return interp_mat
+	
+	def calc_local_interpolation(self,xi,eta):
+		basis_interp = self.calc_basis_interpolation(xi,eta)
+		self.set
 		
 	def transform_basis_to_local(self,xi,eta):
 		interp = self.calc_basis_interpolation(xi,eta)
@@ -77,7 +81,7 @@ class element_d2t3() :
 		pois = poisson 
 		E = elastic_mod
 		thikness = thikness
-		fac_tmp = E/((1+pois**2))
+		fac_tmp = (thikness*E)/((1+pois**2))
 		material_relation = fac_tmp*np.array([[1, pois, 0],
 		                              [pois, 1., 0],
 		                              [0., 0., (1-pois)/2.]])
@@ -102,6 +106,31 @@ class element_d2t3() :
 			element_k = element_k + weight*add_ 
 		#
 		return element_k
+		
+	def calc_bc_load(self,force_density,thikness = 1.) : 
+		# Loop for gauss integration
+		element_load = np.zeros([6,1])
+		flatten_load = force_density.flatten()
+		for i in range(len(self.gauss_weights)): 
+			weight = self.gauss_weights[i]
+			xi = self.gauss_points[i][0]
+			eta = self.gauss_points[i][1]
+			# get interpolation mat 
+			N1 = self.interp1(xi,eta)
+			N2 = self.interp2(xi,eta)
+			N3 = self.interp3(xi,eta)
+			self.set_jacobian(xi,eta)
+			interp_mat = np.array([ [N1, 0, N2, 0, N3, 0], 
+			                       [0, N1, 0, N2, 0, N3] ])
+			#print(flatten_load)
+			#print(interp_mat)
+			add_ = self.det_jac * np.dot(interp_mat,flatten_load)
+			#print(add_)
+			element_load = element_load + weight*add_ 
+		return element_load
+			
+			
+		
 			
 	#def calc_rigidity_matrix(self): 
 	#	stiffness = np.zeros([3,3])
@@ -122,7 +151,7 @@ coord = np.array([0,0])+np.array([[0, 0],
           [1, 0],
           [0, 1]])
    
-print(coord)       
+#print(coord)       
 
 element = element_d2t3()
 element.set_coordinates(coord)
@@ -142,8 +171,8 @@ print(loc_grad)
 basis_grad = element.calc_basis_gradient(xi,eta)
 print('basis gradient given basis coordinates')
 print(basis_grad)
-
 kmat = element.calc_hpp_rigidity_matrix()
+print('local stiffness matrix ')
 print(kmat)
 
 
