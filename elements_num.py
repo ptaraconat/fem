@@ -18,8 +18,46 @@ def grad_basis_interp_func_d2t3_2(xi = None,eta = None) :
 def grad_basis_interp_func_d2t3_3(xi = None,eta = None) :
 	return np.array([0, 1])
 
-
-class element_d2t3() : 
+class element() : 
+	
+	def __init__(self,type):
+		self.type = type 
+	
+	def set_coordinates(self,coordinates_table):
+		self.coordinates = coordinates_table
+	
+	def calc_hpp_rigidity_matrix(self,poisson = 0.,elastic_mod = 4.,thikness = 1.):
+		# Get Material law 
+		material_relation = self.calc_material_mat(elastic_mod,poisson,thikness)
+		# Loop for gauss integration
+		element_k = np.zeros([6,6])
+		for i in range(len(self.gauss_weights)): 
+			weight = self.gauss_weights[i]
+			xi = self.gauss_points[i][0]
+			eta = self.gauss_points[i][1]
+			# Calc local sym part of gradient matrix 
+			self.set_jacobian(xi,eta)
+			B = self.calc_sym_grad_mat(xi,eta)
+			# Gauss Integration 
+			add_ = self.det_jac* np.dot( np.dot(np.transpose(B),material_relation), B)
+			element_k = element_k + weight*add_ 
+		#
+		return element_k
+		
+	def calc_strain(self,nodal_displacements):
+		# Calc B matrix / Sym Gradient matrix 
+		xi, eta = self.middle_point
+		B = self.calc_sym_grad_mat(xi, eta)
+		strain = np.dot(B,nodal_displacements)
+		return strain 
+		
+	def calc_stress(self,strain,young_modulus,poisson_modulus,thikness) : 
+		# 
+		material_matrix = self.calc_material_mat(young_modulus,poisson_modulus,thikness)
+		stress = np.dot(material_matrix,strain)
+		return stress 
+		
+class element_d2t3(element) : 
 	
 	def __init__(self):
 		self.type = 'D2T3'
@@ -35,6 +73,28 @@ class element_d2t3() :
 		
 		self.gauss_points = [[1/6, 1/6],[2/3, 1/6],[1/6, 2/3]] 
 		self.gauss_weights = [1/6, 1/6, 1/6]
+		
+		self.middle_point = (1/3,1/3)
+		
+	def calc_correspondencies(self,element): 
+		el = element
+		correspondance = [[0, 2*el[0]],
+		                  [1, 2*el[0]+1],
+		                  [2, 2*el[1]],
+		                  [3, 2*el[1]+1],
+		                  [4, 2*el[2]],
+		                  [5, 2*el[2]+1]]
+		correspondance = np.asarray(correspondance)
+		return correspondance
+			
+		
+	def calc_material_mat(self,young_modulus,poisson_modulus,thikness):
+		pois = poisson_modulus
+		E = young_modulus
+		thikness = thikness
+		fac_tmp = (thikness*E)/((1+pois**2))
+		material_relation = fac_tmp*np.array([[1, pois, 0],[pois, 1., 0],[0., 0., (1-pois)/2.]])
+		return material_relation
 		
 	def calc_basis_interpolation(self,xi,eta): 
 		interp_mat = [self.interp1(xi,eta),self.interp2(xi,eta),self.interp3(xi,eta)]
@@ -73,40 +133,17 @@ class element_d2t3() :
 		local_gradient = np.dot(inv_jacobian,basis_gradient)
 		return local_gradient
 		
-	def set_coordinates(self,coordinates_table):
-		self.coordinates = coordinates_table
-	
-	def calc_hpp_rigidity_matrix(self,poisson = 0.,elastic_mod = 4.,thikness = 1.):
-		#
-		pois = poisson 
-		E = elastic_mod
-		thikness = thikness
-		fac_tmp = (thikness*E)/((1+pois**2))
-		material_relation = fac_tmp*np.array([[1, pois, 0],
-		                              [pois, 1., 0],
-		                              [0., 0., (1-pois)/2.]])
-		# Loop for gauss integration
-		element_k = np.zeros([6,6])
-		for i in range(len(self.gauss_weights)): 
-			weight = self.gauss_weights[i]
-			xi = self.gauss_points[i][0]
-			eta = self.gauss_points[i][1]
-			# Calc local sym part of gradient matrix 
-			self.set_jacobian(xi,eta)
-			mat_tmp = self.calc_local_gradient(xi,eta)
-			dn1dx = mat_tmp[0,0]
-			dn1dy = mat_tmp[1,0]
-			dn2dx = mat_tmp[0,1]
-			dn2dy = mat_tmp[1,1]
-			dn3dx = mat_tmp[0,2]
-			dn3dy = mat_tmp[1,2]
-			B = np.array([[dn1dx, 0, dn2dx, 0, dn3dx, 0],[0, dn1dy, 0, dn2dy, 0, dn3dy],[dn1dy, dn1dx, dn2dy, dn2dx, dn3dy, dn3dx]])
-			# Gauss Integration 
-			add_ = self.det_jac* np.dot( np.dot(np.transpose(B),material_relation), B)
-			element_k = element_k + weight*add_ 
-		#
-		return element_k
-		
+	def calc_sym_grad_mat(self,xi,eta): 
+		mat_tmp = self.calc_local_gradient(xi,eta)
+		dn1dx = mat_tmp[0,0]
+		dn1dy = mat_tmp[1,0]
+		dn2dx = mat_tmp[0,1]
+		dn2dy = mat_tmp[1,1]
+		dn3dx = mat_tmp[0,2]
+		dn3dy = mat_tmp[1,2]
+		B = np.array([[dn1dx, 0, dn2dx, 0, dn3dx, 0],[0, dn1dy, 0, dn2dy, 0, dn3dy],[dn1dy, dn1dx, dn2dy, dn2dx, dn3dy, dn3dx]])
+		return B 
+			
 	def calc_bc_load(self,force_density,thikness = 1.) : 
 		# Loop for gauss integration
 		element_load = np.zeros([6,1])

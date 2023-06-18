@@ -31,13 +31,7 @@ class MecaSolver():
 			self.element.set_coordinates(nodes)
 			element_mat = self.element.calc_hpp_rigidity_matrix(poisson = self.poisson,elastic_mod = self.young, thikness = self.thikness)
 			# 
-			correspondance = [[0, 2*el[0]],
-			                  [1, 2*el[0]+1],
-			                  [2, 2*el[1]],
-			                  [3, 2*el[1]+1],
-			                  [4, 2*el[2]],
-			                  [5, 2*el[2]+1]]
-			correspondance = np.asarray(correspondance)
+			correspondance = self.element.calc_correspondencies(el)
 			#print(correspondance)
 			#
 			for i in range(len(correspondance)): 
@@ -87,7 +81,22 @@ class MecaSolver():
 		new_loc = new_loc + amplify*disp_tmp
 		plt.plot(self.nodes[:,0],self.nodes[:,1],'r+')
 		plt.plot(new_loc[:,0],new_loc[:,1],'ko')
-		plt.show()
+	
+	def calc_elements_stress(self,mesh_displacements):
+		elements_stress = []
+		elements_strain = []
+		for el in self.connectivity.tolist():
+			correspondance = self.element.calc_correspondencies(el)
+			elementary_displacements = []
+			for j in range(np.size(correspondance,0)):
+				corresponding_ind = correspondance[j,1]
+				elementary_displacements.append(mesh_displacements[ corresponding_ind])
+			strain = self.element.calc_strain(elementary_displacements)
+			stress = self.element.calc_stress(strain,self.young,self.poisson, self.thikness)
+			#print(stress)
+			elements_stress.append(stress.tolist())
+			elements_strain.append(strain.tolist())
+		print(elements_stress)
 		
 
 def set_mesh_bounds(nodes_table,xmin=0.,xmax=1.,ymin=0.,ymax = 1.) : 
@@ -115,21 +124,26 @@ def set_mesh_bounds(nodes_table,xmin=0.,xmax=1.,ymin=0.,ymax = 1.) :
 
 ####### Define a mesh ########
 d1 = 10 
-d2 = 5
-p = 20
-m = 20
+d2 = 2
+p = 10
+m = 10
 NL, EL = uniform_mesh(d1,d2,p,m,element_type = 'D2T3')
 plt.close()
 dico_bnd = set_mesh_bounds(NL,xmax = d1, ymax = d2)
 #######
 f = 10
-solver = MecaSolver(2,'D2T3',poisson=0.8,young=40000,thikness = 2)
+solver = MecaSolver(2,'D2T3',poisson=0.4,young=400000,thikness = 2)
 solver.set_grid(NL,EL)
 solver.set_stiffness()
 solver.add_boundary_constant_force(dico_bnd['bnd2'],[0,f])
 solver.set_boundary_nodal_displacement(dico_bnd['bnd1'],dispy = 0. )
 displacement = solver.solve()
-solver.display_displacement(displacement,amplify = 1)
+solver.display_displacement(displacement,amplify = 2)
+plt.xlim(-2,12)
+plt.ylim(-2,12)
+plt.show()
+
+solver.calc_elements_stress(displacement)
 
 
 
