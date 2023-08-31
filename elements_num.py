@@ -152,7 +152,9 @@ class element_d2t3(element) :
 	def calc_local_gradient(self,xi,eta):
 		jacobian = self.calc_jacobian(xi,eta)
 		inv_jacobian = np.linalg.inv(jacobian)
+		# Calc gradient matrix in the reference/basis element
 		basis_gradient = self.calc_basis_gradient(xi,eta) 
+		# calc gradient matrix 
 		local_gradient = np.dot(inv_jacobian,basis_gradient)
 		return local_gradient
 		
