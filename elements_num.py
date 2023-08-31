@@ -1,5 +1,6 @@
 import numpy as np 
 
+## Shape functioons and their derivatives 
 def basis_interp_func_d2t3_1(xi,eta) : 
 	return 1 - xi - eta 
 
@@ -19,14 +20,36 @@ def grad_basis_interp_func_d2t3_3(xi = None,eta = None) :
 	return np.array([0, 1])
 
 class element() : 
+	'''Element class '''
 	
 	def __init__(self,type):
 		self.type = type 
 	
 	def set_coordinates(self,coordinates_table):
+		'''
+		Arguments : 
+		coordinates_table ::: array [Nnodes, Ndim] ::: Coordinates defining 
+		the element
+		Returns : 
+		None
+		'''
 		self.coordinates = coordinates_table
 	
-	def calc_hpp_rigidity_matrix(self,poisson = 0.,elastic_mod = 4.,thikness = 1.):
+	def calc_hpp_rigidity_matrix(self,poisson = 0.,elastic_mod = 4.,
+	thikness = 1.):
+		''' 
+		Calculates element Stiffness matrix.
+		- Small deformations 
+		- Hook's law
+		- So far, handles only 2D element. A thikness parameter is used. 
+		Arguments : 
+		poisson ::: float ::: default = 0. ::: Poisson coefficient 
+		elasting_mod ::: float ::: default = 4. ::: Young's modulus 
+		thikness ::: float ::: default = 1. ::: element thikness
+		Returns : 
+		element_k ::: array [Nnodes.Ndims, Nnodes.Ndims] ::: Element stifness 
+		matrix 
+		'''
 		# Get Material law 
 		material_relation = self.calc_material_mat(elastic_mod,poisson,thikness)
 		# Loop for gauss integration
